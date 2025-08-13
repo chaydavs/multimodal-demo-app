@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Multimodal Robotics Control System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <h1>🤖 Multimodal Robotics Control System</h1>
+            <div class="status-bar">
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">Connected</span>
+                </div>
+                <div class="model-selector">
+                    <label for="aiModel">AI Model:</label>
+                    <select id="aiModel">
+                        <option value="mock">Mock (Demo)</option>
+                        <option value="openai">OpenAI GPT-4V</option>
+                        <option value="anthropic">Anthropic Claude</option>
+                        <option value="google">Google Gemini</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-grid">
+                <!-- Left Section: Image Upload & Task Description -->
+                <section class="input-section">
+                    <h3>📸 Image Upload & Task Description</h3>
+                    
+                    <!-- File Upload Area -->
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <p><strong>Click to upload an image</strong></p>
+                        <p>or drag and drop here</p>
+                        <small>Supports: JPG, PNG, GIF, WebP (max 10MB)</small>
+                    </div>
+                    
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    
+                    <!-- Image Preview -->
+                    <div class="preview-container" id="previewContainer" style="display: none;">
+                        <img id="imagePreview" alt="Image Preview" style="max-width: 100%; max-height: 250px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <div class="image-info" id="imageInfo" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 6px; font-size: 14px;"></div>
+                    </div>
+                    
+                    <!-- Task Input -->
+                    <div class="task-input-section">
+                        <label for="taskInput">Task Instructions:</label>
+                        <textarea 
+                            id="taskInput" 
+                            placeholder="Describe what the robotic arm should do with the objects in the image...
+
+Examples:
+• 'Pick up the red cube and place it in the blue container'
+• 'Sort the tools by placing them in separate containers'
+• 'Stack the blocks in order of size'
+• 'Move the green ball to the left side of the workspace'"
+                            rows="6"
+                        ></textarea>
+                        <div class="character-count">
+                            <span id="charCount">0</span>/500 characters
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="processBtn" disabled>
+                            <span class="btn-icon">🚀</span>
+                            Process Request
+                        </button>
+                        <button class="btn btn-secondary" id="resetBtn">
+                            <span class="btn-icon">🔄</span>
+                            Reset
+                        </button>
+                    </div>
+                </section>
+                
+                <!-- Right Section: Robot Arm Visualization -->
+                <section class="robot-section">
+                    <h3>🦾 Robot Arm Visualization</h3>
+                    
+                    <!-- Robot Canvas Container -->
+                    <div class="robot-container">
+                        <canvas id="robotCanvas" class="robot-canvas" width="500" height="400"></canvas>
+                        <div class="robot-overlay">
+                            <div class="coordinates-display" id="coordinatesDisplay">
+                                <div class="coord-header">Position</div>
+                                <div class="coord-item">X: <span id="posX">0</span>mm</div>
+                                <div class="coord-item">Y: <span id="posY">0</span>mm</div>
+                                <div class="coord-item">Z: <span id="posZ">0</span>mm</div>
+                                <div class="coord-item">Gripper: <span id="gripperState">Open</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Robot Control Buttons -->
+                    <div class="robot-controls">
+                        <button class="btn btn-success" id="simulateBtn" disabled>
+                            <span class="btn-icon">▶️</span>
+                            Start Simulation
+                        </button>
+                        <button class="btn btn-warning" id="pauseBtn" disabled>
+                            <span class="btn-icon">⏸️</span>
+                            Pause
+                        </button>
+                        <button class="btn btn-danger" id="stopBtn" disabled>
+                            <span class="btn-icon">⏹️</span>
+                            Stop
+                        </button>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Bottom Section: AI Analysis & Results -->
+            <section class="response-section">
+                <h3>🧠 AI Analysis & Robot Commands</h3>
+                
+                <!-- Analysis Results -->
+                <div class="response-content" id="responseContent">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">🤔</div>
+                        <p>Upload an image and provide instructions to get started...</p>
+                        <small>The AI will analyze your image and generate precise robot commands for the task.</small>
+                    </div>
+                </div>
+                
+                <!-- Command Sequence Display -->
+                <div class="command-list" id="commandList" style="display: none;">
+                    <h4>🎯 Generated Commands:</h4>
+                    <div class="command-sequence" id="commandSequence"></div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center;">
+            <div class="loading-content" style="background: white; padding: 2rem; border-radius: 1rem; text-align: center;">
+                <div class="loading-spinner" style="width: 48px; height: 48px; border: 4px solid #ddd; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                <p class="loading-text" id="loadingText">Processing...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript Files -->
+    <script src="js/api-client.js"></script>
+    <script src="js/robot-visualizer.js"></script>
+    <script src="js/main.js"></script>
+    
+    <!-- Inline CSS for spinner animation -->
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Initialize Application -->
+    <script>
+        console.log('🚀 Starting application initialization...');
+        
+        // Global variables
+        let app;
+        let apiClient;
+        
+        // Simple file upload handler that works
+        function initializeImageUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const imageInput = document.getElementById('imageInput');
+            const previewContainer = document.getElementById('previewContainer');
+            const imagePreview = document.getElementById('imagePreview');
+            const imageInfo = document.getElementById('imageInfo');
+            const processBtn = document.getElementById('processBtn');
+            
+            console.log('📁 Initializing image upload...');
+            console.log('Elements found:', {
+                uploadArea: !!uploadArea,
+                imageInput: !!imageInput,
+                previewContainer: !!previewContainer,
+                imagePreview: !!imagePreview,
+                imageInfo: !!imageInfo
+            });
+            
+            // Click to upload
+            if (uploadArea && imageInput) {
+                uploadArea.addEventListener('click', function() {
+                    console.log('📁 Upload area clicked');
+                    imageInput.click();
+                });
+                
+                // File selection
+                imageInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        console.log('📁 File selected:', file.name, file.type, file.size);
+                        handleImageFile(file);
+                    }
+                });
+                
+                // Drag and drop
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    uploadArea.style.borderColor = '#007bff';
+                    uploadArea.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+                });
+                
+                uploadArea.addEventListener('dragleave', function(e) {
+                    uploadArea.style.borderColor = '#007bff';
+                    uploadArea.style.backgroundColor = 'rgba(37, 99, 235, 0.05)';
+                });
+                
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    uploadArea.style.borderColor = '#007bff';
+                    uploadArea.style.backgroundColor = 'rgba(37, 99, 235, 0.05)';
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        const file = files[0];
+                        if (file.type.startsWith('image/')) {
+                            console.log('📁 File dropped:', file.name);
+                            imageInput.files = files;
+                            handleImageFile(file);
+                        } else {
+                            alert('Please select an image file');
+                        }
+                    }
+                });
+            }
+            
+            function handleImageFile(file) {
+                console.log('📁 Processing file:', file.name);
+                
+                // Validate file
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select a valid image file');
+                    return;
+                }
+                
+                if (file.size > 10 * 1024 * 1024) { // 10MB
+                    alert('File too large. Maximum size is 10MB.');
+                    return;
+                }
+                
+                // Create FileReader
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    console.log('📁 File loaded successfully');
+                    
+                    // Display preview
+                    if (imagePreview && previewContainer) {
+                        imagePreview.src = e.target.result;
+                        previewContainer.style.display = 'block';
+                        
+                        // Show file info
+                        if (imageInfo) {
+                            // Get image dimensions
+                            const img = new Image();
+                            img.onload = function() {
+                                imageInfo.innerHTML = `
+                                    <strong>${file.name}</strong><br>
+                                    Size: ${img.width} × ${img.height} pixels<br>
+                                    File size: ${formatFileSize(file.size)}
+                                `;
+                            };
+                            img.src = e.target.result;
+                        }
+                        
+                        // Enable process button
+                        if (processBtn) {
+                            processBtn.disabled = false;
+                            processBtn.style.opacity = '1';
+                        }
+                        
+                        // Store image data globally
+                        window.currentImageData = {
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            dataUrl: e.target.result,
+                            base64: e.target.result.split(',')[1]
+                        };
+                        
+                        console.log('✅ Image preview displayed and data stored');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    console.error('❌ Failed to read file');
+                    alert('Failed to read the image file');
+                };
+                
+                reader.readAsDataURL(file);
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+        
+        // Initialize process button
+        function initializeProcessButton() {
+            const processBtn = document.getElementById('processBtn');
+            const taskInput = document.getElementById('taskInput');
+            const responseContent = document.getElementById('responseContent');
+            const commandList = document.getElementById('commandList');
+            const simulateBtn = document.getElementById('simulateBtn');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            if (processBtn) {
+                processBtn.addEventListener('click', async function() {
+                    console.log('🚀 Process button clicked');
+                    
+                    if (!window.currentImageData) {
+                        alert('Please upload an image first');
+                        return;
+                    }
+                    
+                    const taskDescription = taskInput.value.trim();
+                    if (!taskDescription) {
+                        alert('Please enter a task description');
+                        taskInput.focus();
+                        return;
+                    }
+                    
+                    // Show loading
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'flex';
+                    }
+                    
+                    try {
+                        console.log('🚀 Sending request to backend...');
+                        
+                        const response = await fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                image: window.currentImageData.dataUrl,
+                                description: taskDescription
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`Request failed: ${response.status}`);
+                        }
+                        
+                        const result = await response.json();
+                        console.log('✅ Analysis result:', result);
+                        
+                        // Display results
+                        if (responseContent) {
+                            responseContent.innerHTML = `
+                                <div class="analysis-section">
+                                    <div class="analysis-header">
+                                        <span>🔍</span>
+                                        <span>Scene Analysis</span>
+                                    </div>
+                                    <div class="analysis-content">
+                                        ${result.analysis}
+                                    </div>
+                                </div>
+                                
+                                <div class="analysis-section">
+                                    <div class="analysis-header">
+                                        <span>📦</span>
+                                        <span>Objects Detected</span>
+                                    </div>
+                                    <div class="objects-detected">
+                                        ${result.objects_detected.map(obj => 
+                                            `<span class="object-tag" style="background: #007bff; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; margin-right: 0.5rem;">${obj.replace('_', ' ')}</span>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="analysis-section">
+                                    <div class="analysis-header">
+                                        <span>📊</span>
+                                        <span>Confidence Level</span>
+                                    </div>
+                                    <div class="confidence-meter">
+                                        <div style="background: #ddd; height: 6px; border-radius: 3px; overflow: hidden;">
+                                            <div style="background: linear-gradient(90deg, #dc2626, #d97706, #059669); height: 100%; width: ${(result.confidence * 100)}%; transition: width 0.3s ease;"></div>
+                                        </div>
+                                        <span style="font-weight: 600; margin-left: 10px;">${(result.confidence * 100).toFixed(1)}%</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Show command list
+                        if (commandList && result.commands) {
+                            const commandSequence = document.getElementById('commandSequence');
+                            commandList.style.display = 'block';
+                            
+                            if (commandSequence) {
+                                commandSequence.innerHTML = result.commands.map((cmd, index) => `
+                                    <div class="command-item" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid #ddd;">
+                                        <div class="command-number" style="background: #007bff; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600;">${index + 1}</div>
+                                        <div class="command-details" style="flex: 1;">
+                                            <div class="command-action" style="font-weight: 600; margin-bottom: 0.25rem;">${cmd.action.replace('_', ' ').toUpperCase()}</div>
+                                            <div class="command-description" style="font-size: 0.875rem; color: #666;">${cmd.description || 'No description'}</div>
+                                            ${cmd.x !== undefined ? `<div class="command-params" style="font-family: monospace; font-size: 0.75rem; color: #999; margin-top: 0.25rem;">X:${cmd.x} Y:${cmd.y} Z:${cmd.z}</div>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('');
+                            }
+                            
+                            // Store commands globally and enable simulation
+                            window.robotCommands = result.commands;
+                            if (simulateBtn) {
+                                simulateBtn.disabled = false;
+                                simulateBtn.style.opacity = '1';
+                            }
+                            
+                            // Load commands into robot visualizer if available
+                            if (window.app && window.app.robotVisualizer) {
+                                window.app.robotVisualizer.loadCommands(result.commands);
+                                console.log('✅ Commands loaded into robot visualizer');
+                            }
+                        }
+                        
+                        console.log('✅ Analysis complete and displayed');
+                        
+                    } catch (error) {
+                        console.error('❌ Analysis failed:', error);
+                        alert('Analysis failed: ' + error.message);
+                    } finally {
+                        // Hide loading
+                        if (loadingOverlay) {
+                            loadingOverlay.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initialize simulation button
+        function initializeSimulationButton() {
+            const simulateBtn = document.getElementById('simulateBtn');
+            
+            if (simulateBtn) {
+                simulateBtn.addEventListener('click', function() {
+                    console.log('▶️ Simulation button clicked');
+                    
+                    if (window.robotCommands && window.app && window.app.robotVisualizer) {
+                        window.app.robotVisualizer.startExecution();
+                        console.log('✅ Simulation started');
+                    } else {
+                        console.log('⚠️ Robot visualizer not available, running test animation');
+                        
+                        // Simple test without robot visualizer
+                        alert('Simulation started! Check the robot visualization area.');
+                    }
+                });
+            }
+        }
+        
+        // Initialize character counter
+        function initializeCharacterCounter() {
+            const taskInput = document.getElementById('taskInput');
+            const charCount = document.getElementById('charCount');
+            
+            if (taskInput && charCount) {
+                taskInput.addEventListener('input', function() {
+                    charCount.textContent = taskInput.value.length;
+                });
+            }
+        }
+        
+        // Initialize reset button
+        function initializeResetButton() {
+            const resetBtn = document.getElementById('resetBtn');
+            
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    console.log('🔄 Reset button clicked');
+                    
+                    // Clear image
+                    const imageInput = document.getElementById('imageInput');
+                    const previewContainer = document.getElementById('previewContainer');
+                    const taskInput = document.getElementById('taskInput');
+                    const responseContent = document.getElementById('responseContent');
+                    const commandList = document.getElementById('commandList');
+                    const processBtn = document.getElementById('processBtn');
+                    const simulateBtn = document.getElementById('simulateBtn');
+                    
+                    if (imageInput) imageInput.value = '';
+                    if (previewContainer) previewContainer.style.display = 'none';
+                    if (taskInput) taskInput.value = '';
+                    if (commandList) commandList.style.display = 'none';
+                    if (processBtn) {
+                        processBtn.disabled = true;
+                        processBtn.style.opacity = '0.6';
+                    }
+                    if (simulateBtn) {
+                        simulateBtn.disabled = true;
+                        simulateBtn.style.opacity = '0.6';
+                    }
+                    
+                    if (responseContent) {
+                        responseContent.innerHTML = `
+                            <div class="placeholder-content">
+                                <div class="placeholder-icon">🤔</div>
+                                <p>Upload an image and provide instructions to get started...</p>
+                                <small>The AI will analyze your image and generate precise robot commands for the task.</small>
+                            </div>
+                        `;
+                    }
+                    
+                    window.currentImageData = null;
+                    window.robotCommands = null;
+                    
+                    document.getElementById('charCount').textContent = '0';
+                    
+                    console.log('✅ Application reset');
+                });
+            }
+        }
+        
+        // Main initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📋 DOM Content Loaded - initializing...');
+            
+            // Initialize all components
+            initializeImageUpload();
+            initializeProcessButton();
+            initializeSimulationButton();
+            initializeCharacterCounter();
+            initializeResetButton();
+            
+            // Initialize API client and app if available
+            try {
+                if (typeof APIClient !== 'undefined') {
+                    apiClient = new APIClient();
+                    window.apiClient = apiClient;
+                    console.log('✅ API Client initialized');
+                }
+                
+                if (typeof MultimodalRoboticsApp !== 'undefined') {
+                    app = new MultimodalRoboticsApp();
+                    window.app = app;
+                    console.log('✅ Main app initialized');
+                }
+            } catch (error) {
+                console.warn('⚠️ Advanced components not available:', error);
+                console.log('✅ Basic functionality still works');
+            }
+            
+            console.log('🎉 Application fully initialized!');
+        });
+        
+        // Debug function
+        window.debugUpload = function() {
+            console.log('Debug Info:', {
+                currentImageData: window.currentImageData,
+                robotCommands: window.robotCommands,
+                uploadArea: document.getElementById('uploadArea'),
+                imageInput: document.getElementById('imageInput'),
+                previewContainer: document.getElementById('previewContainer')
+            });
+        };
+    </script>
+</body>
+</html>
