@@ -1,4 +1,8 @@
+
 # 🤖 Multimodal Robotics Control System
+
+![App Preview](/Demo_Image.jpeg)
+
 
 A full-stack web application combining computer vision, natural language processing(future), and 3D simulation for intelligent user influenced constructions operations through an intuitive web interface.
 
